@@ -5,12 +5,13 @@ import (
 	"crypto/tls"
 	"flag"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
-	"os/signal"
 	"time"
 
 	"github.com/Rican7/netfoolery/internal/analytics"
+	"github.com/Rican7/netfoolery/internal/run"
 )
 
 type config struct {
@@ -29,66 +30,22 @@ var (
 	conf config
 )
 
-func init() {
-	flag.IntVar(&conf.port, "port", 58085, "the HTTP port to use")
-
-	flag.Parse()
-}
-
 func main() {
-	os.Exit(run())
+	flagSet := flag.CommandLine
+	flagSet.IntVar(&conf.port, "port", 58085, "the HTTP port to use")
+
+	app := run.NewApp(os.Args[0], os.Stdout, os.Stderr)
+	app.SetCommand("serve", serve, flagSet)
+	app.SetCommand("submit", submit, flagSet)
+
+	ctx := context.Background()
+
+	exitCode := app.Run(ctx, os.Args[1:])
+
+	os.Exit(exitCode)
 }
 
-func run() int {
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
-	defer stop()
-
-	errChan := make(chan error)
-
-	switch flag.Arg(0) {
-	case "serve":
-		fmt.Println("Starting to serve...")
-		go func() {
-			errChan <- serve(ctx)
-		}()
-	case "submit":
-		fmt.Println("Starting to submit...")
-		go func() {
-			errChan <- submit(ctx)
-		}()
-	default:
-		return printErr(fmt.Errorf("expected 'serve' or 'submit'"))
-	}
-
-	select {
-	case err := <-errChan:
-		returnCode := 0
-
-		if err != nil {
-			printErr(err)
-			returnCode = 1
-		}
-
-		stop()
-
-		return returnCode
-	case <-ctx.Done():
-		fmt.Printf("\n\nDone.\n")
-		stop()
-	}
-
-	return 0
-}
-
-func printErr(err error) int {
-	fmt.Fprintf(os.Stderr, "\n\nError: %v\n", err)
-
-	time.Sleep(1 * time.Second)
-
-	return 1
-}
-
-func serve(ctx context.Context) error {
+func serve(ctx context.Context, out io.Writer) error {
 	server := http.Server{
 		Addr: conf.Addr(),
 
@@ -102,7 +59,7 @@ func serve(ctx context.Context) error {
 		for {
 			select {
 			case <-ticker.C:
-				fmt.Printf("\r\033[2KWaiting...")
+				fmt.Fprintf(out, "\r\033[2KWaiting...")
 			case <-ctx.Done():
 				return
 			}
@@ -113,13 +70,13 @@ func serve(ctx context.Context) error {
 	server.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ticker.Reset(time.Second)
 		total, rate := serveAnalytics.IncrForTime(time.Now().Unix())
-		fmt.Printf("\rReceived. Total: %d. Rate: %d/second", total, rate)
+		fmt.Fprintf(out, "\rReceived. Total: %d. Rate: %d/second", total, rate)
 	})
 
 	return server.ListenAndServe()
 }
 
-func submit(ctx context.Context) error {
+func submit(ctx context.Context, out io.Writer) error {
 	client := http.Client{}
 
 	submitAnalytics := analytics.New()
@@ -141,7 +98,7 @@ func submit(ctx context.Context) error {
 		defer resp.Body.Close()
 
 		total, rate := submitAnalytics.IncrForTime(time.Now().Unix())
-		fmt.Printf("\rSubmitted. Total: %d. Rate: %d/second", total, rate)
+		fmt.Fprintf(out, "\rSubmitted. Total: %d. Rate: %d/second", total, rate)
 	}
 
 	return err
