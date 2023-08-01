@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"sync/atomic"
+	"sync"
 	"time"
 )
 
@@ -24,7 +24,64 @@ func (c *config) URLString() string {
 	return fmt.Sprintf("http://localhost:%d", c.port)
 }
 
-var conf config
+type timeCountPair struct {
+	ts    int64
+	count uint
+}
+
+type analytics struct {
+	totalCount uint
+	timeCount  []timeCountPair
+
+	mutex sync.RWMutex
+}
+
+func newAnalytics() *analytics {
+	return &analytics{
+		timeCount: make([]timeCountPair, 2),
+	}
+}
+
+func (a *analytics) TotalCount() uint {
+	a.mutex.RLock()
+	defer a.mutex.RUnlock()
+
+	return a.totalCount
+}
+
+func (a *analytics) CountPerSecond() uint {
+	a.mutex.RLock()
+	defer a.mutex.RUnlock()
+
+	// Return the oldest data, as it's "complete"
+	return a.timeCount[0].count
+}
+
+func (a *analytics) IncrForTime(unixTime int64) (uint, uint) {
+	a.mutex.Lock()
+	defer a.mutex.Unlock()
+
+	a.totalCount++
+	a.setTimeCount(unixTime)
+
+	return a.totalCount, a.timeCount[0].count
+}
+
+func (a *analytics) setTimeCount(unixTime int64) {
+	latestIndex := len(a.timeCount) - 1
+
+	if a.timeCount[latestIndex].ts != unixTime {
+		// Remove the oldest, add a latest
+		a.timeCount = a.timeCount[1:]
+		a.timeCount = append(a.timeCount, timeCountPair{ts: unixTime})
+	}
+
+	a.timeCount[latestIndex].count++
+}
+
+var (
+	conf config
+)
 
 func init() {
 	flag.IntVar(&conf.port, "port", 58085, "the HTTP port to use")
@@ -93,11 +150,10 @@ func serve(ctx context.Context) error {
 		TLSNextProto: make(map[string]func(*http.Server, *tls.Conn, http.Handler)),
 	}
 
-	var serveCounter atomic.Int64
-
+	serveAnalytics := newAnalytics()
 	server.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		count := serveCounter.Add(1)
-		fmt.Printf("\rgot it: %d", count)
+		total, rate := serveAnalytics.IncrForTime(time.Now().Unix())
+		fmt.Printf("\rReceiving. Total: %d. Rate: %d/second", total, rate)
 	})
 
 	return server.ListenAndServe()
@@ -106,11 +162,11 @@ func serve(ctx context.Context) error {
 func submit(ctx context.Context) error {
 	client := http.Client{}
 
-	var submitCounter atomic.Int64
+	submitAnalytics := newAnalytics()
 	var err error
 	for err == nil {
-		count := submitCounter.Add(1)
-		fmt.Printf("\rsubmitting: %d", count)
+		total, rate := submitAnalytics.IncrForTime(time.Now().Unix())
+		fmt.Printf("\rSubmitting. Total: %d. Rate: %d/second", total, rate)
 
 		var resp *http.Response
 		resp, err = client.Post(conf.URLString(), "application/netfoolery", nil)
