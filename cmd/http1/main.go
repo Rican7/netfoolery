@@ -96,8 +96,22 @@ func serve(ctx context.Context) error {
 		TLSNextProto: make(map[string]func(*http.Server, *tls.Conn, http.Handler)),
 	}
 
+	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				fmt.Printf("\r\033[2KWaiting...")
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+
 	serveAnalytics := analytics.New()
 	server.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ticker.Reset(time.Second)
 		total, rate := serveAnalytics.IncrForTime(time.Now().Unix())
 		fmt.Printf("\rReceived. Total: %d. Rate: %d/second", total, rate)
 	})
