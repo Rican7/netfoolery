@@ -165,15 +165,23 @@ func submit(ctx context.Context) error {
 	submitAnalytics := newAnalytics()
 	var err error
 	for err == nil {
+		var req *http.Request
+		var resp *http.Response
+
+		req, err = http.NewRequestWithContext(ctx, http.MethodPost, conf.URLString(), nil)
+		if err != nil {
+			return err
+		}
+
+		resp, err = client.Do(req)
+		if err != nil {
+			return err
+		}
+
+		defer resp.Body.Close()
+
 		total, rate := submitAnalytics.IncrForTime(time.Now().Unix())
 		fmt.Printf("\rSubmitting. Total: %d. Rate: %d/second", total, rate)
-
-		var resp *http.Response
-		resp, err = client.Post(conf.URLString(), "application/netfoolery", nil)
-
-		if err == nil {
-			defer resp.Body.Close()
-		}
 	}
 
 	return err
