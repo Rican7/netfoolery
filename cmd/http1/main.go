@@ -8,8 +8,9 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"sync"
 	"time"
+
+	"github.com/Rican7/netfoolery/internal/analytics"
 )
 
 type config struct {
@@ -22,61 +23,6 @@ func (c *config) Addr() string {
 
 func (c *config) URLString() string {
 	return fmt.Sprintf("http://localhost:%d", c.port)
-}
-
-type timeCountPair struct {
-	ts    int64
-	count uint
-}
-
-type analytics struct {
-	totalCount uint
-	timeCount  []timeCountPair
-
-	mutex sync.RWMutex
-}
-
-func newAnalytics() *analytics {
-	return &analytics{
-		timeCount: make([]timeCountPair, 2),
-	}
-}
-
-func (a *analytics) TotalCount() uint {
-	a.mutex.RLock()
-	defer a.mutex.RUnlock()
-
-	return a.totalCount
-}
-
-func (a *analytics) CountPerSecond() uint {
-	a.mutex.RLock()
-	defer a.mutex.RUnlock()
-
-	// Return the oldest data, as it's "complete"
-	return a.timeCount[0].count
-}
-
-func (a *analytics) IncrForTime(unixTime int64) (uint, uint) {
-	a.mutex.Lock()
-	defer a.mutex.Unlock()
-
-	a.totalCount++
-	a.setTimeCount(unixTime)
-
-	return a.totalCount, a.timeCount[0].count
-}
-
-func (a *analytics) setTimeCount(unixTime int64) {
-	latestIndex := len(a.timeCount) - 1
-
-	if a.timeCount[latestIndex].ts != unixTime {
-		// Remove the oldest, add a latest
-		a.timeCount = a.timeCount[1:]
-		a.timeCount = append(a.timeCount, timeCountPair{ts: unixTime})
-	}
-
-	a.timeCount[latestIndex].count++
 }
 
 var (
@@ -150,10 +96,10 @@ func serve(ctx context.Context) error {
 		TLSNextProto: make(map[string]func(*http.Server, *tls.Conn, http.Handler)),
 	}
 
-	serveAnalytics := newAnalytics()
+	serveAnalytics := analytics.New()
 	server.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		total, rate := serveAnalytics.IncrForTime(time.Now().Unix())
-		fmt.Printf("\rReceiving. Total: %d. Rate: %d/second", total, rate)
+		fmt.Printf("\rReceived. Total: %d. Rate: %d/second", total, rate)
 	})
 
 	return server.ListenAndServe()
@@ -162,7 +108,7 @@ func serve(ctx context.Context) error {
 func submit(ctx context.Context) error {
 	client := http.Client{}
 
-	submitAnalytics := newAnalytics()
+	submitAnalytics := analytics.New()
 	var err error
 	for err == nil {
 		var req *http.Request
@@ -181,7 +127,7 @@ func submit(ctx context.Context) error {
 		defer resp.Body.Close()
 
 		total, rate := submitAnalytics.IncrForTime(time.Now().Unix())
-		fmt.Printf("\rSubmitting. Total: %d. Rate: %d/second", total, rate)
+		fmt.Printf("\rSubmitted. Total: %d. Rate: %d/second", total, rate)
 	}
 
 	return err
