@@ -53,6 +53,12 @@ func serve(ctx context.Context, out io.Writer) error {
 		TLSNextProto: make(map[string]func(*http.Server, *tls.Conn, http.Handler)),
 	}
 
+	errChan := make(chan error)
+	go func() {
+		<-ctx.Done()
+		errChan <- server.Shutdown(ctx)
+	}()
+
 	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()
 	go func() {
@@ -73,7 +79,11 @@ func serve(ctx context.Context, out io.Writer) error {
 		fmt.Fprintf(out, "\rReceived. Total: %d. Rate: %d/second", total, rate)
 	})
 
-	return server.ListenAndServe()
+	if err := server.ListenAndServe(); err != http.ErrServerClosed {
+		return err
+	}
+
+	return <-errChan
 }
 
 func submit(ctx context.Context, out io.Writer) error {
