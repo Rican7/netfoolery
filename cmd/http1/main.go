@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -40,8 +41,14 @@ func main() {
 	flagSet.IntVar(&conf.port, "port", 58085, "the HTTP port to use")
 
 	app := run.NewMultiCommandApp(appName, appSummary, flagSet, os.Stdout, os.Stderr)
-	app.SetCommand("serve", "Start serving HTTP/1.x", serve, nil)
-	app.SetCommand("submit", "Start submitting HTTP/1.x", submit, nil)
+
+	err := errors.Join(
+		app.SetCommand("serve", "Start serving HTTP/1.x", serve, nil),
+		app.SetCommand("submit", "Start submitting HTTP/1.x", submit, nil),
+	)
+	if err != nil {
+		panic(err)
+	}
 
 	exitCode := app.Run(context.Background(), os.Args[1:])
 
