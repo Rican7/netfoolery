@@ -39,7 +39,7 @@ func main() {
 	flagSet := flag.NewFlagSet(appName, flag.ExitOnError)
 	flagSet.IntVar(&conf.port, "port", 58085, "the HTTP port to use")
 
-	app := run.NewApp(appName, appSummary, flagSet, os.Stdout, os.Stderr)
+	app := run.NewMultiCommandApp(appName, appSummary, flagSet, os.Stdout, os.Stderr)
 	app.SetCommand("serve", "Start serving HTTP/1.x", serve, nil)
 	app.SetCommand("submit", "Start submitting HTTP/1.x", submit, nil)
 
