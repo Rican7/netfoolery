@@ -14,6 +14,11 @@ import (
 	"github.com/Rican7/netfoolery/internal/run"
 )
 
+const (
+	appName    = "http1"
+	appSummary = "Test/Benchmark HTTP/1.x connection rates"
+)
+
 type config struct {
 	port int
 }
@@ -31,16 +36,14 @@ var (
 )
 
 func main() {
-	flagSet := flag.CommandLine
+	flagSet := flag.NewFlagSet(appName, flag.ExitOnError)
 	flagSet.IntVar(&conf.port, "port", 58085, "the HTTP port to use")
 
-	app := run.NewApp(os.Args[0], os.Stdout, os.Stderr)
-	app.SetCommand("serve", serve, flagSet)
-	app.SetCommand("submit", submit, flagSet)
+	app := run.NewApp(appName, appSummary, flagSet, os.Stdout, os.Stderr)
+	app.SetCommand("serve", "Start serving HTTP/1.x", serve, nil)
+	app.SetCommand("submit", "Start submitting HTTP/1.x", submit, nil)
 
-	ctx := context.Background()
-
-	exitCode := app.Run(ctx, os.Args[1:])
+	exitCode := app.Run(context.Background(), os.Args[1:])
 
 	os.Exit(exitCode)
 }
@@ -56,6 +59,7 @@ func serve(ctx context.Context, out io.Writer) error {
 	errChan := make(chan error)
 	go func() {
 		<-ctx.Done()
+		defer fmt.Fprintln(out, "\nShutting down....")
 		errChan <- server.Shutdown(ctx)
 	}()
 
@@ -79,6 +83,8 @@ func serve(ctx context.Context, out io.Writer) error {
 		fmt.Fprintf(out, "\rReceived. Total: %d. Rate: %d/second", total, rate)
 	})
 
+	fmt.Fprintf(out, "Starting to serve on port %d...\n", conf.port)
+
 	if err := server.ListenAndServe(); err != http.ErrServerClosed {
 		return err
 	}
@@ -88,8 +94,11 @@ func serve(ctx context.Context, out io.Writer) error {
 
 func submit(ctx context.Context, out io.Writer) error {
 	client := http.Client{}
-
 	submitAnalytics := analytics.New()
+
+	fmt.Fprintf(out, "Starting to submit on port %d...\n", conf.port)
+	defer fmt.Fprintln(out, "\nStopping...")
+
 	var err error
 	for err == nil {
 		var req *http.Request
