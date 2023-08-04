@@ -68,7 +68,7 @@ func main() {
 	os.Exit(exitCode)
 }
 
-func serve(ctx context.Context, out io.Writer) error {
+func serve(ctx context.Context, arguments []string, out io.Writer) error {
 	server := http.Server{
 		Addr: confShared.Addr(),
 
@@ -129,7 +129,7 @@ func serve(ctx context.Context, out io.Writer) error {
 	return <-errChan
 }
 
-func submit(ctx context.Context, out io.Writer) error {
+func submit(ctx context.Context, arguments []string, out io.Writer) error {
 	client := http.Client{}
 	submitAnalytics := analytics.New()
 

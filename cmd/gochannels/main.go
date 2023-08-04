@@ -34,7 +34,7 @@ func main() {
 	os.Exit(exitCode)
 }
 
-func loop(ctx context.Context, out io.Writer) error {
+func loop(ctx context.Context, arguments []string, out io.Writer) error {
 	fmt.Fprintln(out, "Starting to loop...")
 	defer fmt.Fprintln(out, "\nStopping...")
 
