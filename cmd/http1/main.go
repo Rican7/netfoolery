@@ -63,9 +63,19 @@ func main() {
 		panic(err)
 	}
 
+	app.OnInit(validateConfig)
+
 	exitCode := app.Run(context.Background(), os.Args[1:])
 
 	os.Exit(exitCode)
+}
+
+func validateConfig() error {
+	if confSubmit.numWorkers == 0 {
+		return fmt.Errorf("invalid worker count '%d'", confSubmit.numWorkers)
+	}
+
+	return nil
 }
 
 func serve(ctx context.Context, arguments []string, out io.Writer) error {
@@ -138,7 +148,7 @@ func submit(ctx context.Context, arguments []string, out io.Writer) error {
 	workers, ctx := errgroup.WithContext(ctx)
 	workers.SetLimit(confSubmit.numWorkers)
 
-	for {
+	for confSubmit.numWorkers != 0 {
 		select {
 		case <-ctx.Done():
 			fmt.Fprintln(out, "\nStopping...")
