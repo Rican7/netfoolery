@@ -9,7 +9,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"runtime"
 	"time"
 
 	"github.com/Rican7/netfoolery/internal/analytics"
@@ -42,7 +41,7 @@ var (
 	confSubmit = struct {
 		numWorkers int
 	}{
-		numWorkers: runtime.GOMAXPROCS(-1),
+		numWorkers: 3, // 3 seems to run best currently...
 	}
 )
 
