@@ -110,7 +110,7 @@ func serve(ctx context.Context, arguments []string, out io.Writer) error {
 		fmt.Fprintf(out, "\rReceived. Total: %d. Rate: %d/second", total, rate)
 	})
 
-	fmt.Fprintf(out, "Starting to serve on port %d...\n", confShared.port)
+	fmt.Fprintf(out, "Starting to serve at host '%s'...\n", server.Addr)
 
 	errChan := make(chan error)
 	go func() {
