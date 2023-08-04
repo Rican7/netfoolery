@@ -42,6 +42,12 @@ var (
 		port: 58085,
 	}
 
+	confServer = struct {
+		useHTTPKeepAlives bool
+	}{
+		useHTTPKeepAlives: true,
+	}
+
 	confSubmit = struct {
 		numWorkers int
 	}{
@@ -54,13 +60,16 @@ func main() {
 	globalFlags.StringVar(&confShared.host, "host", confShared.host, "the HTTP host to use")
 	globalFlags.IntVar(&confShared.port, "port", confShared.port, "the HTTP port to use")
 
+	serverFlags := flag.NewFlagSet("server", flag.ExitOnError)
+	serverFlags.BoolVar(&confServer.useHTTPKeepAlives, "http-keep-alives", confServer.useHTTPKeepAlives, "enable HTTP 'keep-alives'")
+
 	submitFlags := flag.NewFlagSet("submit", flag.ExitOnError)
 	submitFlags.IntVar(&confSubmit.numWorkers, "workers", confSubmit.numWorkers, "the number of workers to use (-1 = unlimited)")
 
 	app := run.NewMultiCommandApp(appName, appSummary, globalFlags, os.Stdout, os.Stderr)
 
 	err := errors.Join(
-		app.SetCommand("serve", "Start serving HTTP/1.x", serve, nil),
+		app.SetCommand("serve", "Start serving HTTP/1.x", serve, serverFlags),
 		app.SetCommand("submit", "Start submitting HTTP/1.x", submit, submitFlags),
 	)
 	if err != nil {
@@ -89,6 +98,7 @@ func serve(ctx context.Context, arguments []string, out io.Writer) error {
 		// Disable HTTP/2 by setting this to a non-nil, empty map
 		TLSNextProto: make(map[string]func(*http.Server, *tls.Conn, http.Handler)),
 	}
+	server.SetKeepAlivesEnabled(confServer.useHTTPKeepAlives)
 
 	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()
