@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/Rican7/netfoolery/internal/analytics"
+	"github.com/Rican7/netfoolery/internal/pkginfo"
 	"github.com/Rican7/netfoolery/internal/run"
 	"golang.org/x/sync/errgroup"
 )
@@ -66,7 +67,8 @@ func main() {
 	submitFlags := flag.NewFlagSet("submit", flag.ExitOnError)
 	submitFlags.IntVar(&confSubmit.numWorkers, "workers", confSubmit.numWorkers, "the number of workers to use (-1 = unlimited)")
 
-	app := run.NewMultiCommandApp(appName, appSummary, globalFlags, os.Stdout, os.Stderr)
+	appInfo := run.AppInfo{Name: appName, Summary: appSummary, Version: pkginfo.Version}
+	app := run.NewMultiCommandApp(appInfo, globalFlags, os.Stdout, os.Stderr)
 
 	err := errors.Join(
 		app.SetCommand("serve", "Start serving HTTP/1.x", serve, serverFlags),

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/Rican7/netfoolery/internal/analytics"
+	"github.com/Rican7/netfoolery/internal/pkginfo"
 	"github.com/Rican7/netfoolery/internal/run"
 )
 
@@ -20,9 +21,9 @@ const (
 func main() {
 	flagSet := flag.NewFlagSet(appName, flag.ExitOnError)
 
+	appInfo := run.AppInfo{Name: appName, Summary: appSummary, Version: pkginfo.Version}
 	app := run.NewSingleCommandApp(
-		appName,
-		appSummary,
+		appInfo,
 		loop,
 		flagSet,
 		os.Stdout,
