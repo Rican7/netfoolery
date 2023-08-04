@@ -7,8 +7,10 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/Rican7/netfoolery/internal/analytics"
@@ -22,19 +24,21 @@ const (
 )
 
 type sharedConfig struct {
+	host string
 	port int
 }
 
 func (c *sharedConfig) Addr() string {
-	return fmt.Sprintf(":%d", c.port)
+	return net.JoinHostPort(c.host, strconv.Itoa(c.port))
 }
 
 func (c *sharedConfig) URLString() string {
-	return fmt.Sprintf("http://localhost:%d", c.port)
+	return fmt.Sprintf("http://%s", c.Addr())
 }
 
 var (
 	confShared = sharedConfig{
+		host: "localhost",
 		port: 58085,
 	}
 
@@ -47,6 +51,7 @@ var (
 
 func main() {
 	globalFlags := flag.NewFlagSet(appName, flag.ExitOnError)
+	globalFlags.StringVar(&confShared.host, "host", confShared.host, "the HTTP host to use")
 	globalFlags.IntVar(&confShared.port, "port", confShared.port, "the HTTP port to use")
 
 	submitFlags := flag.NewFlagSet("submit", flag.ExitOnError)
@@ -142,7 +147,7 @@ func submit(ctx context.Context, arguments []string, out io.Writer) error {
 	client := http.Client{}
 	submitAnalytics := analytics.New()
 
-	fmt.Fprintf(out, "Starting to submit on port %d with %d workers...\n", confShared.port, confSubmit.numWorkers)
+	fmt.Fprintf(out, "Starting to submit to URL '%s' with %d workers...\n", confShared.URLString(), confSubmit.numWorkers)
 
 	workers, ctx := errgroup.WithContext(ctx)
 	workers.SetLimit(confSubmit.numWorkers)
