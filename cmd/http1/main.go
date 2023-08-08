@@ -13,9 +13,9 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/Rican7/lieut"
 	"github.com/Rican7/netfoolery/internal/analytics"
 	"github.com/Rican7/netfoolery/internal/pkginfo"
-	"github.com/Rican7/netfoolery/internal/run"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -67,12 +67,12 @@ func main() {
 	submitFlags := flag.NewFlagSet("submit", flag.ExitOnError)
 	submitFlags.IntVar(&confSubmit.numWorkers, "workers", confSubmit.numWorkers, "the number of workers to use (-1 = unlimited)")
 
-	appInfo := run.AppInfo{Name: appName, Summary: appSummary, Version: pkginfo.Version}
-	app := run.NewMultiCommandApp(appInfo, globalFlags, os.Stdout, os.Stderr)
+	appInfo := lieut.AppInfo{Name: appName, Summary: appSummary, Version: pkginfo.Version}
+	app := lieut.NewMultiCommandApp(appInfo, globalFlags, os.Stdout, os.Stderr)
 
 	err := errors.Join(
-		app.SetCommand("serve", "Start serving HTTP/1.x", serve, serverFlags),
-		app.SetCommand("submit", "Start submitting HTTP/1.x", submit, submitFlags),
+		app.SetCommand(lieut.CommandInfo{Name: "serve", Summary: "Start serving HTTP/1.x"}, serve, serverFlags),
+		app.SetCommand(lieut.CommandInfo{Name: "submit", Summary: "Start submitting HTTP/1.x"}, submit, submitFlags),
 	)
 	if err != nil {
 		panic(err)

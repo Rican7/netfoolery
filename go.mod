@@ -3,3 +3,5 @@ module github.com/Rican7/netfoolery
 go 1.20
 
 require golang.org/x/sync v0.3.0
+
+require github.com/Rican7/lieut v0.0.0-20230808055022-8721f55bee6d
