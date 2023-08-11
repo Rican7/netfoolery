@@ -6,7 +6,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io"
 	"net"
 	"net/http"
 	"os"
@@ -54,6 +53,9 @@ var (
 	}{
 		numWorkers: 3, // 3 seems to run best currently...
 	}
+
+	out    = os.Stdout
+	errOut = os.Stderr
 )
 
 func main() {
@@ -68,7 +70,7 @@ func main() {
 	submitFlags.IntVar(&confSubmit.numWorkers, "workers", confSubmit.numWorkers, "the number of workers to use (-1 = unlimited)")
 
 	appInfo := lieut.AppInfo{Name: appName, Summary: appSummary, Version: pkginfo.Version}
-	app := lieut.NewMultiCommandApp(appInfo, globalFlags, os.Stdout, os.Stderr)
+	app := lieut.NewMultiCommandApp(appInfo, globalFlags, out, errOut)
 
 	err := errors.Join(
 		app.SetCommand(lieut.CommandInfo{Name: "serve", Summary: "Start serving HTTP/1.x"}, serve, serverFlags),
@@ -93,7 +95,7 @@ func validateConfig() error {
 	return nil
 }
 
-func serve(ctx context.Context, arguments []string, out io.Writer) error {
+func serve(ctx context.Context, arguments []string) error {
 	server := http.Server{
 		Addr: confShared.Addr(),
 
@@ -155,7 +157,7 @@ func serve(ctx context.Context, arguments []string, out io.Writer) error {
 	return <-errChan
 }
 
-func submit(ctx context.Context, arguments []string, out io.Writer) error {
+func submit(ctx context.Context, arguments []string) error {
 	client := http.Client{}
 	submitAnalytics := analytics.New()
 

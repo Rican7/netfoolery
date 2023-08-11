@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"io"
 	"os"
 	"time"
 
@@ -18,6 +17,11 @@ const (
 	appSummary = "Test/Benchmark raw Go channel communication rates"
 )
 
+var (
+	out    = os.Stdout
+	errOut = os.Stderr
+)
+
 func main() {
 	flagSet := flag.NewFlagSet(appName, flag.ExitOnError)
 
@@ -26,8 +30,8 @@ func main() {
 		appInfo,
 		loop,
 		flagSet,
-		os.Stdout,
-		os.Stderr,
+		out,
+		errOut,
 	)
 
 	exitCode := app.Run(context.Background(), os.Args[1:])
@@ -35,7 +39,7 @@ func main() {
 	os.Exit(exitCode)
 }
 
-func loop(ctx context.Context, arguments []string, out io.Writer) error {
+func loop(ctx context.Context, arguments []string) error {
 	fmt.Fprintln(out, "Starting to loop...")
 	defer fmt.Fprintln(out, "\nStopping...")
 
