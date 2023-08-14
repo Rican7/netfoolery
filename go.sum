@@ -1,2 +1,4 @@
+github.com/Rican7/lieut v0.1.1 h1:rwQ0UjoKx/noPC+vMf63y88qzO5+2y2J4dLFdkP/qbc=
+github.com/Rican7/lieut v0.1.1/go.mod h1:7ZJew5W+9uZNlE3SL8W1wwhUqFWmb+1r0a1xl8zGeUs=
 golang.org/x/sync v0.3.0 h1:ftCYgMx6zT/asHUrPw8BLLscYtGznsLAnjq5RH9P66E=
 golang.org/x/sync v0.3.0/go.mod h1:FU7BRWz2tNW+3quACPkgCx/L+uEAv1htQ0V83Z9Rj+Y=
