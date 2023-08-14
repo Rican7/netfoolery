@@ -7,14 +7,16 @@ import (
 	"os"
 	"time"
 
-	"github.com/Rican7/lieut"
 	"github.com/Rican7/netfoolery/internal/analytics"
 	"github.com/Rican7/netfoolery/internal/pkginfo"
+
+	"github.com/Rican7/lieut"
 )
 
 const (
 	appName    = "gochannels"
 	appSummary = "Test/Benchmark raw Go channel communication rates"
+	appUsage   = "[<option>...]"
 )
 
 var (
@@ -23,9 +25,15 @@ var (
 )
 
 func main() {
+	appInfo := lieut.AppInfo{
+		Name:    appName,
+		Summary: appSummary,
+		Usage:   appUsage,
+		Version: pkginfo.Version,
+	}
+
 	flagSet := flag.NewFlagSet(appName, flag.ExitOnError)
 
-	appInfo := lieut.AppInfo{Name: appName, Summary: appSummary, Version: pkginfo.Version}
 	app := lieut.NewSingleCommandApp(
 		appInfo,
 		loop,
