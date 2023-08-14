@@ -14,28 +14,35 @@ type Analytics struct {
 	totalCount uint
 	timeCount  []timeCountPair
 
-	mutex sync.RWMutex
+	concurrencySafe bool
+	mutex           sync.RWMutex
 }
 
 // New returns an initialized Analytics.
-func New() *Analytics {
+func New(concurrencySafe bool) *Analytics {
 	return &Analytics{
 		timeCount: make([]timeCountPair, 2),
+
+		concurrencySafe: concurrencySafe,
 	}
 }
 
 // TotalCount returns the total analyzed count.
 func (a *Analytics) TotalCount() uint {
-	a.mutex.RLock()
-	defer a.mutex.RUnlock()
+	if a.concurrencySafe {
+		a.mutex.RLock()
+		defer a.mutex.RUnlock()
+	}
 
 	return a.totalCount
 }
 
 // CountPerSecond returns the last-known full rate of analyzed counts, per-second.
 func (a *Analytics) CountPerSecond() uint {
-	a.mutex.RLock()
-	defer a.mutex.RUnlock()
+	if a.concurrencySafe {
+		a.mutex.RLock()
+		defer a.mutex.RUnlock()
+	}
 
 	// Return the oldest data, as it's "complete"
 	return a.timeCount[0].count
@@ -45,8 +52,10 @@ func (a *Analytics) CountPerSecond() uint {
 // AND tracks the count for the specified time. It returns the total analyzed
 // count, and the analyzed count-per-second rate.
 func (a *Analytics) IncrForTime(unixTime int64) (uint, uint) {
-	a.mutex.Lock()
-	defer a.mutex.Unlock()
+	if a.concurrencySafe {
+		a.mutex.Lock()
+		defer a.mutex.Unlock()
+	}
 
 	a.totalCount++
 	a.setTimeCount(unixTime)

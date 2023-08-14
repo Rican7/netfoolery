@@ -127,7 +127,7 @@ func serve(ctx context.Context, arguments []string) error {
 		}
 	}()
 
-	serveAnalytics := analytics.New()
+	serveAnalytics := analytics.New(true)
 	server.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ticker.Reset(time.Second)
 		total, rate := serveAnalytics.IncrForTime(time.Now().Unix())
@@ -169,7 +169,7 @@ func serve(ctx context.Context, arguments []string) error {
 
 func submit(ctx context.Context, arguments []string) error {
 	client := http.Client{}
-	submitAnalytics := analytics.New()
+	submitAnalytics := analytics.New(true)
 
 	fmt.Fprintf(out, "Starting to submit to URL '%s' with %d workers...\n", confShared.URLString(), confSubmit.numWorkers)
 

@@ -136,7 +136,7 @@ func serve(ctx context.Context, arguments []string) error {
 		}
 	}()
 
-	serveAnalytics := analytics.New()
+	serveAnalytics := analytics.New(true)
 
 	fmt.Fprintf(out, "Starting to serve at host '%s'...\n", listener.Addr())
 
@@ -207,7 +207,7 @@ func submit(ctx context.Context, arguments []string) error {
 		KeepAlive: keepAlive,
 	}
 
-	submitAnalytics := analytics.New()
+	submitAnalytics := analytics.New(true)
 
 	fmt.Fprintf(out, "Starting to submit to host '%s' with %d workers...\n", confShared.Addr(), confSubmit.numWorkers)
 

@@ -52,7 +52,7 @@ func loop(ctx context.Context, arguments []string) error {
 	defer fmt.Fprintln(out, "\nStopping...")
 
 	dataChan := make(chan *struct{})
-	analytics := analytics.New()
+	analytics := analytics.New(false)
 	go func() {
 		for {
 			select {

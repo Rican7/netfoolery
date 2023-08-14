@@ -125,7 +125,7 @@ func listen(ctx context.Context, arguments []string) error {
 		}
 	}()
 
-	listenAnalytics := analytics.New()
+	listenAnalytics := analytics.New(false)
 
 	fmt.Fprintf(out, "Starting to listen at host '%s'...\n", udpConn.LocalAddr())
 
@@ -175,7 +175,7 @@ func submit(ctx context.Context, arguments []string) error {
 
 	defer conn.Close()
 
-	submitAnalytics := analytics.New()
+	submitAnalytics := analytics.New(true)
 
 	fmt.Fprintf(out, "Starting to submit to host '%s' with %d workers...\n", confShared.Addr(), confSubmit.numWorkers)
 
