@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"runtime"
 	"strconv"
 	"time"
 
@@ -55,7 +56,7 @@ var (
 	confSubmit = struct {
 		numWorkers int
 	}{
-		numWorkers: 3, // 3 seems to run best currently...
+		numWorkers: runtime.NumCPU(),
 	}
 
 	out    = os.Stdout
@@ -168,7 +169,28 @@ func serve(ctx context.Context, arguments []string) error {
 }
 
 func submit(ctx context.Context, arguments []string) error {
-	client := http.Client{}
+	transport := &http.Transport{
+		Proxy:             http.ProxyFromEnvironment,
+		ForceAttemptHTTP2: false,
+
+		// Set the number of max connections AND idle connections per-host to
+		// the number of workers, so that we don't end up breaching this maximum
+		// and causing connections to be constantly ended and connected, rather
+		// than reused from the connection pool.
+		//
+		// See:
+		//  - https://stackoverflow.com/a/37813844
+		//  - https://stackoverflow.com/a/39834253
+		MaxConnsPerHost:     confSubmit.numWorkers,
+		MaxIdleConnsPerHost: confSubmit.numWorkers,
+		MaxIdleConns:        confSubmit.numWorkers * 100,
+
+		IdleConnTimeout: 10 * time.Second,
+	}
+
+	client := http.Client{
+		Transport: transport,
+	}
 	submitAnalytics := analytics.New(true)
 
 	fmt.Fprintf(out, "Starting to submit to URL '%s' with %d workers...\n", confShared.URLString(), confSubmit.numWorkers)
